@@ -1,4 +1,4 @@
-package com.spoof.overlay
+package com.ludashi.benchmark
 
 import android.app.Activity
 import android.app.NotificationChannel
@@ -17,7 +17,7 @@ import androidx.core.app.NotificationCompat
 class OverlayActivity : Activity() {
 
     companion object {
-        const val ACTION_STOP_OVERLAY = "com.spoof.overlay.ACTION_STOP"
+        const val ACTION_STOP_OVERLAY = "com.ludashi.benchmark.ACTION_STOP"
         private const val CHANNEL_ID = "overlay_service_channel"
         private const val NOTIFICATION_ID = 1001
 

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.spoof.overlay"
+    namespace = "com.ludashi.benchmark"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.spoof.overlay"
+        applicationId = "com.ludashi.benchmark"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

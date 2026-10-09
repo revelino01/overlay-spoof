@@ -1,3 +1,3 @@
-# Keep all classes in com.spoof.overlay package
--keep class com.spoof.overlay.** { *; }
--dontwarn com.spoof.overlay.**
+# Keep all classes in com.ludashi.benchmark package
+-keep class com.ludashi.benchmark.** { *; }
+-dontwarn com.ludashi.benchmark.**
