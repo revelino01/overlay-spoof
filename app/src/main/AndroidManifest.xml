@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Draw over other apps — registers our window in WindowManager so OEM sees it -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <!-- Keep service alive -->
+    <!-- Foreground service to survive PiP dismissal -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Notification to stop -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -21,8 +19,10 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.TransparentOverlay"
-            android:excludeFromRecents="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
+            android:excludeFromRecents="false"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|uiMode"
+            android:resizeableActivity="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
