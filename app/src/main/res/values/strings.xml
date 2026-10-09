@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Spoof</string>
+    <string name="channel_name">Overlay Controls</string>
+    <string name="channel_description">Notifications to manage the transparent overlay</string>
+    <string name="notification_title">Overlay is Active</string>
+    <string name="notification_text">Touch passthrough enabled. Tap Stop to dismiss.</string>
+    <string name="action_stop">Stop</string>
+</resources>

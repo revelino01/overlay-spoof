@@ -1,0 +1,5 @@
+<resources>
+    <color name="transparent">#00000000</color>
+    <color name="ic_launcher_background">#0F172A</color>
+    <color name="ic_launcher_accent">#38BDF8</color>
+</resources>
