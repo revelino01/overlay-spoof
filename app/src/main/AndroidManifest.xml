@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Optional permission for exit notification on Android 13+ -->
+    <!-- Draw over other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Foreground service to keep overlay alive -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Notification for dismissing overlay -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -17,15 +21,18 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.TransparentOverlay"
-            android:excludeFromRecents="false"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".OverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
 
         <receiver
             android:name=".OverlayReceiver"
