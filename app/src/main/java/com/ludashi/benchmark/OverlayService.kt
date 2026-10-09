@@ -8,17 +8,23 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 
 /**
  * Foreground service that keeps the com.ludashi.benchmark process resident.
  *
- * This works in tandem with a 1x1 invisible SYSTEM_ALERT_WINDOW view.
- * It provides the required persistent notification and spoof overlay.
+ * Displays a visible SYSTEM_ALERT_WINDOW floating badge so you can verify
+ * the overlay is active and running without crashing.
  */
 class OverlayService : Service() {
 
@@ -32,13 +38,13 @@ class OverlayService : Service() {
     }
 
     private var windowManager: WindowManager? = null
-    private var invisibleView: View? = null
+    private var overlayView: View? = null
 
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         startForegroundWithNotification()
-        setupInvisibleOverlay()
+        setupVisibleOverlay()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,33 +53,61 @@ class OverlayService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun setupInvisibleOverlay() {
+    private fun setupVisibleOverlay() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        
-        // A simple 1x1 transparent view
-        invisibleView = View(this).apply {
-            setBackgroundColor(Color.TRANSPARENT)
+
+        val density = resources.displayMetrics.density
+        val paddingHorizontal = (14 * density).toInt()
+        val paddingVertical = (7 * density).toInt()
+
+        // Visible badge so you can confirm it is running on screen
+        val badgeView = TextView(this).apply {
+            text = "⚡ Ludashi Spoof: ACTIVE"
+            setTextColor(Color.parseColor("#00FF66"))
+            textSize = 12f
+            setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
+
+            val shape = GradientDrawable().apply {
+                setColor(Color.parseColor("#E6121212")) // Dark semi-transparent background
+                cornerRadius = 20 * density
+                setStroke((1.5f * density).toInt(), Color.parseColor("#00FF66")) // Neon green border
+            }
+            background = shape
         }
+        overlayView = badgeView
 
         val layoutParams = WindowManager.LayoutParams(
-            1, // width
-            1, // height
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             },
+            // FLAG_NOT_FOCUSABLE: doesn't steal key/back events
+            // FLAG_NOT_TOUCHABLE: touches pass straight through so it won't block gameplay or taps
+            // FLAG_LAYOUT_NO_LIMITS: allows positioning anywhere
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSPARENT
-        )
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = (16 * density).toInt()
+            y = (48 * density).toInt() // Positioned just below typical status bar
+        }
 
         try {
-            windowManager?.addView(invisibleView, layoutParams)
+            windowManager?.addView(overlayView, layoutParams)
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this, "Overlay attached to screen!", Toast.LENGTH_SHORT).show()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(this, "Failed to add overlay: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -125,11 +159,11 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
-        
-        // Remove the invisible view when the service is destroyed
+
         try {
-            if (invisibleView != null && windowManager != null) {
-                windowManager?.removeView(invisibleView)
+            if (overlayView != null && windowManager != null) {
+                windowManager?.removeView(overlayView)
+                overlayView = null
             }
         } catch (e: Exception) {
             e.printStackTrace()

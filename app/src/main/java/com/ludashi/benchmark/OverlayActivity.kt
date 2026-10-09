@@ -10,6 +10,8 @@ import android.widget.Toast
 
 class OverlayActivity : Activity() {
 
+    private var requestedPermission = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -20,27 +22,32 @@ class OverlayActivity : Activity() {
             return
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "Please grant 'Display over other apps' permission", Toast.LENGTH_LONG).show()
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivityForResult(intent, 100)
-        } else {
-            startOverlayService()
+        checkPermissionAndStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (requestedPermission) {
+            checkPermissionAndStart()
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 100) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
-                startOverlayService()
+    private fun checkPermissionAndStart() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            if (!requestedPermission) {
+                requestedPermission = true
+                Toast.makeText(this, "Please grant 'Display over other apps' permission", Toast.LENGTH_LONG).show()
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivity(intent)
             } else {
-                Toast.makeText(this, "Permission denied. Cannot spoof.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Overlay permission not granted", Toast.LENGTH_SHORT).show()
                 finish()
             }
+        } else {
+            startOverlayService()
         }
     }
 
@@ -51,8 +58,6 @@ class OverlayActivity : Activity() {
         } else {
             startService(serviceIntent)
         }
-        Toast.makeText(this, "Benchmark spoof active (Invisible)", Toast.LENGTH_SHORT).show()
-        // We don't need the activity anymore, the service will run the invisible overlay
         finish()
     }
 }
