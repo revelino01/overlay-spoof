@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base Transparent Overlay Theme -->
-    <style name="Theme.TransparentOverlay" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+    <style name="Theme.TransparentOverlay" parent="@android:style/Theme.Translucent.NoTitleBar">
         <!-- Translucent window configuration -->
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
@@ -11,6 +11,7 @@
         <item name="android:windowIsFloating">false</item>
         <item name="android:backgroundDimEnabled">false</item>
         <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowShowWallpaper">true</item>
 
         <!-- System bar transparency -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
