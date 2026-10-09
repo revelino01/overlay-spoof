@@ -11,27 +11,13 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 
-/**
- * Transparent activity that immediately enters Picture-in-Picture mode.
- *
- * WHY PiP?
- * OEM benchmark boost systems (Xiaomi, vivo/iQOO, OPPO, Realme, etc.) detect
- * benchmarks by watching ActivityManager for foreground activity package names.
- * A background service or overlay window does NOT satisfy this check.
- *
- * A PiP activity is special: Android keeps it registered as a FOREGROUND component
- * in ActivityManager even while the user actively uses another app. The OEM's
- * detection layer sees com.ludashi.benchmark as a foreground activity at all times.
- *
- * The PiP window is configured to the smallest allowed ratio and is fully
- * transparent — essentially invisible to the user.
- */
 class OverlayActivity : Activity() {
+
+    private var hasStartedPip = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Toggle off if already running
         if (OverlayService.isRunning) {
             stopService(Intent(this, OverlayService::class.java))
             Toast.makeText(this, "Benchmark spoof stopped", Toast.LENGTH_SHORT).show()
@@ -41,7 +27,6 @@ class OverlayActivity : Activity() {
 
         setupTransparentWindow()
 
-        // Minimal transparent content — zero rendering cost
         val emptyView = View(this).apply {
             setBackgroundColor(Color.TRANSPARENT)
             isClickable = false
@@ -49,7 +34,6 @@ class OverlayActivity : Activity() {
         }
         setContentView(emptyView)
 
-        // Start the foreground service — keeps process alive if PiP is dismissed
         val serviceIntent = Intent(this, OverlayService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
@@ -58,10 +42,15 @@ class OverlayActivity : Activity() {
         }
 
         Toast.makeText(this, "Benchmark spoof active", Toast.LENGTH_SHORT).show()
+    }
 
-        // Enter PiP immediately — this is what keeps us as a foreground activity
-        // while the user freely switches to and uses any other app
-        enterPipMode()
+    override fun onResume() {
+        super.onResume()
+        // Wait until onResume to enter PiP so the activity has a valid state
+        if (!hasStartedPip && !isInPictureInPictureMode) {
+            enterPipMode()
+            hasStartedPip = true
+        }
     }
 
     override fun onPictureInPictureModeChanged(
@@ -69,7 +58,6 @@ class OverlayActivity : Activity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode)
         if (!isInPictureInPictureMode) {
-            // User dismissed the PiP window — stop everything
             stopService(Intent(this, OverlayService::class.java))
             finish()
         }
@@ -77,19 +65,26 @@ class OverlayActivity : Activity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // Re-enter PiP whenever user presses Home/Recents
-        enterPipMode()
+        if (!isInPictureInPictureMode) {
+            enterPipMode()
+        }
     }
 
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val params = PictureInPictureParams.Builder()
-                // Smallest allowed aspect ratio — makes PiP window as tiny as possible
+            val paramsBuilder = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(1, 1))
-                .build()
-            enterPictureInPictureMode(params)
+                
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                paramsBuilder.setAutoEnterEnabled(true)
+            }
+            
+            try {
+                enterPictureInPictureMode(paramsBuilder.build())
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         } else {
-            // Android < 8 fallback: just move to back (PiP not available)
             moveTaskToBack(true)
         }
     }

@@ -3,6 +3,7 @@
 
     <!-- Foreground service to survive PiP dismissal -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- Notification to stop -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
@@ -31,7 +32,10 @@
 
         <service
             android:name=".OverlayService"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Benchmark Spoofing" />
+        </service>
 
         <receiver
             android:name=".OverlayReceiver"
