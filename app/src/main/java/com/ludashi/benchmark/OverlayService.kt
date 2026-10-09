@@ -6,17 +6,19 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.view.View
+import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 
 /**
  * Foreground service that keeps the com.ludashi.benchmark process resident.
  *
- * This works in tandem with the PiP OverlayActivity. While PiP keeps the
- * ActivityManager satisfied that we are a foreground activity, this service
- * ensures the OS doesn't kill the background process under memory pressure,
- * and provides the required persistent notification.
+ * This works in tandem with a 1x1 invisible SYSTEM_ALERT_WINDOW view.
+ * It provides the required persistent notification and spoof overlay.
  */
 class OverlayService : Service() {
 
@@ -29,10 +31,14 @@ class OverlayService : Service() {
         var isRunning = false
     }
 
+    private var windowManager: WindowManager? = null
+    private var invisibleView: View? = null
+
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         startForegroundWithNotification()
+        setupInvisibleOverlay()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -40,6 +46,36 @@ class OverlayService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun setupInvisibleOverlay() {
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        
+        // A simple 1x1 transparent view
+        invisibleView = View(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+        }
+
+        val layoutParams = WindowManager.LayoutParams(
+            1, // width
+            1, // height
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
+            },
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSPARENT
+        )
+
+        try {
+            windowManager?.addView(invisibleView, layoutParams)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     private fun startForegroundWithNotification() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -89,5 +125,14 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        
+        // Remove the invisible view when the service is destroyed
+        try {
+            if (invisibleView != null && windowManager != null) {
+                windowManager?.removeView(invisibleView)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

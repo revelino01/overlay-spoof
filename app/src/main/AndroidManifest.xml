@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Foreground service to survive PiP dismissal -->
+    <!-- Foreground service to survive PiP dismissal (no longer using PiP, but still need FGS) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- Notification to stop -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Permission to draw over other apps for invisible overlay -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:allowBackup="false"
@@ -20,10 +22,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.TransparentOverlay"
-            android:excludeFromRecents="false"
-            android:supportsPictureInPicture="true"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|uiMode"
-            android:resizeableActivity="true">
+            android:excludeFromRecents="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
