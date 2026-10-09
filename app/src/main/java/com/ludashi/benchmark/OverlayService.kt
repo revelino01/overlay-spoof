@@ -6,19 +6,29 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.view.View
+import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 
 /**
- * Foreground service that keeps the com.ludashi.benchmark process alive.
+ * Foreground service that keeps a transparent TYPE_APPLICATION_OVERLAY window
+ * registered in the system's WindowManager under com.ludashi.benchmark.
  *
- * OEM performance boost systems on Chinese devices (Xiaomi, vivo/iQOO, OPPO/OnePlus,
- * Realme, etc.) detect benchmark apps by scanning running processes/packages and apply
- * a higher power/thermal profile when they see known benchmark package names.
+ * Why this works:
+ * OEM benchmark detection (Xiaomi, vivo/iQOO, OPPO/Realme, etc.) scans either:
+ *   (a) running process list for known benchmark package names, or
+ *   (b) WindowManager's window list for benchmark package windows
  *
- * By running as a foreground service, this process stays resident and visible to the
- * OEM's detection layer while the user freely uses any other app.
+ * A foreground service alone satisfies (a). The overlay window satisfies (b)
+ * and crucially persists even when the user switches to another app — because
+ * TYPE_APPLICATION_OVERLAY windows are independent of the activity stack.
+ *
+ * The window is 100% transparent and FLAG_NOT_TOUCHABLE + FLAG_NOT_TOUCH_MODAL,
+ * so the user experiences zero visual or interaction difference.
  */
 class OverlayService : Service() {
 
@@ -31,18 +41,55 @@ class OverlayService : Service() {
         var isRunning = false
     }
 
+    private var overlayView: View? = null
+    private var windowManager: WindowManager? = null
+
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        addOverlayWindow()
         startForegroundWithNotification()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Keep service alive if killed by system
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /**
+     * Adds a full-screen transparent window via TYPE_APPLICATION_OVERLAY.
+     * This is the key registration in WindowManager that OEM detectors scan.
+     */
+    private fun addOverlayWindow() {
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+        overlayView = View(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            isClickable = false
+            isFocusable = false
+        }
+
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY
+        }
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        )
+
+        windowManager?.addView(overlayView, params)
+    }
 
     private fun startForegroundWithNotification() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -69,12 +116,12 @@ class OverlayService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_close_clear_cancel)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(getString(R.string.notification_text))
             .setOngoing(true)
-            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .addAction(
                 android.R.drawable.ic_delete,
                 getString(R.string.action_stop),
@@ -88,5 +135,7 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        overlayView?.let { windowManager?.removeView(it) }
+        overlayView = null
     }
 }

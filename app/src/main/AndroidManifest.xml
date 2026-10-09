@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Foreground service to keep benchmark process alive -->
+    <!-- Draw over other apps — registers our window in WindowManager so OEM sees it -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Keep service alive -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- Notification for dismissing -->
+    <!-- Notification to stop -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
