@@ -1,22 +1,39 @@
-# Spoof Transparent Overlay App
+# Ludashi Benchmark Spoof
 
-An ultra-lightweight Android application that runs as a **100% transparent active activity on top of the screen**, showing everything underneath clearly while consuming virtually zero CPU, GPU, or memory resources.
+An ultra-lightweight Android application designed to bypass and trick OEM benchmark detection systems (such as those found on Xiaomi, vivo/iQOO, OPPO, Realme, etc.). 
+
+By masquerading as the `com.ludashi.benchmark` package and maintaining a persistent foreground state, this app forces your device into its maximum performance/gaming power profile while you freely play other games or use other apps.
 
 ---
 
-## Key Features
+## How It Works
 
-1. **Active Foreground Activity**:
-   - Stays on top as the active foreground task recognized by Android's window manager and usage tracking.
-2. **100% Optical Clarity**:
-   - Completely transparent window (`@android:color/transparent`), no dimming (`backgroundDimEnabled = false`), and transparent status/navigation bars. Everything underneath is displayed clearly.
-3. **Touch Passthrough**:
-   - Uses `FLAG_NOT_TOUCHABLE` and `FLAG_NOT_TOUCH_MODAL` so all taps, swipes, and gestures pass straight through to whatever application is visible beneath the overlay.
-4. **Zero Resource Overhead**:
-   - No view rendering loops, no animations, no timers, and no background workers. Idle CPU usage is **0.0%**.
-5. **Easy Dismissal**:
-   - Because touch interactions pass through to underlying screens, an ongoing low-priority notification with a **Stop** action is provided in the notification drawer.
-   - You can also dismiss the overlay by swiping it away from the Android **Recent Apps (Overview)** switcher or by re-tapping the app icon.
+Chinese OEMs often boost CPU/GPU frequencies and loosen thermal limits when they detect a known benchmarking app is running in the foreground. 
+
+This app tricks `ActivityManager` into thinking the benchmark is always active:
+
+1. **Picture-in-Picture (PiP) Foreground State**:
+   - Android OEMs check the *foreground activity* to trigger their performance boost. A background service or an overlay window is not enough.
+   - When launched, this app instantly enters **Picture-in-Picture (PiP) mode**, rendering itself as a completely transparent 1x1 square.
+   - PiP is a special Android state that keeps the activity registered as a **FOREGROUND component** even when you navigate away to play a game. The OEM detector sees the spoof as actively running on top.
+
+2. **Persistent Foreground Service**:
+   - A lightweight background service (`FOREGROUND_SERVICE_SPECIAL_USE`) runs simultaneously. This ensures the Android memory killer doesn't terminate the spoof process when your device is under heavy load (like when playing a demanding game).
+
+3. **Zero Resource Overhead**:
+   - The app has no UI, no rendering loops, and no timers. Idle CPU usage is **0.0%**. It just acts as a transparent dummy placeholder to trigger the system's power profile.
+
+---
+
+## Usage & The "Stash" Trick
+
+1. **Start the Spoof**: Tap the app icon. A toast will say "Benchmark spoof active" and a tiny invisible PiP square will appear on your screen.
+2. **Stash the PiP Window (Important!)**: 
+   - Because the PiP window sits on top, it might block your touches in that small area.
+   - On Android 12+, **swipe the invisible square all the way off the left or right edge of your screen**. 
+   - It will "stash" itself into a tiny, barely visible handle on the edge of your screen and **stop blocking your touches entirely**. The spoof remains 100% active!
+3. **Play Your Game**: Open any heavy game. The OEM will apply the benchmark power profile.
+4. **Stop the Spoof**: Tap the ongoing notification in your notification tray or tap the app icon again to completely kill the spoof.
 
 ---
 
@@ -25,56 +42,35 @@ An ultra-lightweight Android application that runs as a **100% transparent activ
 ```
 ├── .github/
 │   └── workflows/
-│       └── build.yml               # GitHub Actions CI workflow (builds APKs on push/dispatch)
+│       └── build.yml               # GitHub Actions CI workflow (builds APKs on push)
 ├── app/
-│   ├── build.gradle.kts            # App module build script (SDK 34, Java 17)
-│   ├── proguard-rules.pro          # ProGuard rules for release builds
+│   ├── build.gradle.kts            # App module build script (Target SDK 34)
 │   └── src/
 │       └── main/
-│           ├── AndroidManifest.xml # Declares transparent theme, launcher activity & receiver
-│           ├── java/com/spoof/overlay/
-│           │   ├── OverlayActivity.kt # Transparent activity logic & window flags
-│           │   └── OverlayReceiver.kt # Broadcast receiver to dismiss overlay via notification
+│           ├── AndroidManifest.xml # Declares PiP support, Foreground Services
+│           ├── java/com/ludashi/benchmark/
+│           │   ├── OverlayActivity.kt # PiP Activity logic
+│           │   ├── OverlayService.kt  # Persistent Foreground Service
+│           │   └── OverlayReceiver.kt # Broadcast receiver to stop the spoof
 │           └── res/
 │               ├── drawable/       # Launcher vector assets
 │               ├── mipmap-anydpi-v26/ # Adaptive icon definitions
 │               └── values/         # strings.xml, colors.xml, themes.xml
-├── gradle/
-│   └── wrapper/
-│       └── gradle-wrapper.properties # Gradle 8.7 wrapper configuration
 ├── build.gradle.kts                # Root project build configuration
-├── settings.gradle.kts             # Module and repository definitions
-└── gradle.properties               # Memory and build parameters
+└── settings.gradle.kts             # Module and repository definitions
 ```
 
 ---
 
-## Building via GitHub Actions
+## Installation via GitHub Actions
 
-This repository is configured with a GitHub Actions workflow in [`.github/workflows/build.yml`](file:///.github/workflows/build.yml):
+This repository automatically builds the APK via GitHub Actions every time code is pushed.
 
-1. **Push this repository** to GitHub:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit of Spoof Transparent Overlay"
-   git branch -M main
-   git remote add origin <your-github-repo-url>
-   git push -u origin main
-   ```
-2. In GitHub, navigate to the **Actions** tab.
-3. The **"Build Android APK"** workflow will trigger automatically (or click **"Run workflow"** manually).
-4. Once completed, download the generated APK from the **Artifacts** section:
-   - `spoof-overlay-debug` (debug APK ready for immediate sideloading)
-   - `spoof-overlay-release` (optimized release APK)
-
----
-
-## Installing on an Android Device
-
-After downloading `app-debug.apk` or `app-release.apk` from GitHub Actions:
+1. Go to the **Actions** tab in this repository.
+2. Click on the latest successful **"Build Android APK"** workflow run.
+3. Download the generated APK from the **Artifacts** section at the bottom.
+4. Install `app-debug.apk` or `app-release.apk` on your device.
 
 ```bash
-adb install app-debug.apk
+adb install app-release.apk
 ```
-Or transfer the APK file directly to your Android device and tap to install (enable "Install unknown apps" if prompted).
