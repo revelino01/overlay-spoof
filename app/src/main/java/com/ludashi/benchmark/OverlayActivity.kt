@@ -73,7 +73,7 @@ class OverlayActivity : Activity() {
     private fun enterPipMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val paramsBuilder = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(1, 1))
+                .setAspectRatio(Rational(16, 9))
                 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 paramsBuilder.setAutoEnterEnabled(true)
